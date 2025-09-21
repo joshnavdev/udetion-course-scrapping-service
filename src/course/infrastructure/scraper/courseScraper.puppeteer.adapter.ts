@@ -10,7 +10,6 @@ import { TopicEntity } from '../../domain/entities/topic.entity';
 export class CourseScraperPuppeteerAdapter implements ScrapperPort, OnModuleInit, OnModuleDestroy {
   private browser: Browser;
   private $: cheerio.CheerioAPI;
-  private readonly listContainerSelector = '.accordion-panel-module--panel--Eb0it';
 
   async scrape<T>(payload: ScrapeRequest): Promise<ScrapeResponse<T>> {
     try {
@@ -30,8 +29,8 @@ export class CourseScraperPuppeteerAdapter implements ScrapperPort, OnModuleInit
 
     const selector = '.clp-lead__title';
     await page.waitForSelector(selector);
-
-    await page.waitForSelector(this.listContainerSelector);
+    await page.waitForSelector('.ud-text-sm[data-purpose="curriculum-stats"]');
+    await page.locator('.ud-btn-text-sm[data-purpose="show-more"]').click();
 
     return page.content();
   }
@@ -42,26 +41,28 @@ export class CourseScraperPuppeteerAdapter implements ScrapperPort, OnModuleInit
     const { moduleArgs } = courseData as { moduleArgs: Record<string, string> };
     const title = moduleArgs.title;
     const courseId = moduleArgs.course_id;
-    const $listContent = this.$(this.listContainerSelector);
-
-    console.log({ title, courseId });
+    const $listContent = this.$('.accordion-panel-module--panel--Eb0it');
 
     const modules: ModuleEntity[] = [];
     $listContent.each((_, el) => {
       const $container = this.$(el);
       const module = this.getModuleInformationFromHeader($container);
-      modules.push(module);
+
+      if (module) modules.push(module);
     });
 
     return { id: parseInt(courseId), title, url: '', modules };
   }
 
-  private getModuleInformationFromHeader($container: cheerio.Cheerio<any>): ModuleEntity {
+  private getModuleInformationFromHeader($container: cheerio.Cheerio<any>): ModuleEntity | undefined {
     const moduleIdSelector = '.ud-accordion-panel-toggler';
     const id = $container.find(moduleIdSelector).data('cssToggleId') as string;
     const $moduleHeader = $container.find('.ud-accordion-panel-title');
     const $moduleInfo = $moduleHeader.find('span');
     const title = $moduleInfo.eq(0).text();
+
+    if (!title) return undefined;
+
     const time = $moduleInfo.eq(1).find('span').text();
 
     const $topicContainerList = $container.find('.ud-block-list li');

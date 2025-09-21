@@ -14,8 +14,6 @@ export class CourseController {
   async courseTest(@Payload() data: ScrapeCourseDto) {
     const course = await this.courseScraper.scrape<CourseEntity>(data);
 
-    console.log(course);
-
     if (!course) throw new RpcException('Course not found');
 
     return course;
