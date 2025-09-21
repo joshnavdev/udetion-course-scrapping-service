@@ -1,0 +1,1 @@
+export const COURSE_SCRAPPER_PORT = Symbol('COURSE_SCRAPPER_PORT');

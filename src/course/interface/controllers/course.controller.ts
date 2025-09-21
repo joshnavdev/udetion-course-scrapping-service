@@ -1,10 +1,23 @@
-import { Controller } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import { Controller, Inject, Logger } from '@nestjs/common';
+import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
+import { ScrapeCourseDto } from '../../domain/dtos/scrapeCourse.dto';
+import { COURSE_SCRAPPER_PORT } from '../../domain/constants/tokens';
+import { ScrapperPort } from '../../application/ports/scrapper.port';
+import { CourseEntity } from '../../domain/entities/course.entity';
 
 @Controller()
 export class CourseController {
-  @MessagePattern('course-test-2')
-  courseTest() {
-    console.log('course-test');
+  private readonly logger = new Logger(CourseController.name);
+  constructor(@Inject(COURSE_SCRAPPER_PORT) private readonly courseScraper: ScrapperPort) {}
+
+  @MessagePattern('create_course')
+  async courseTest(@Payload() data: ScrapeCourseDto) {
+    const course = await this.courseScraper.scrape<CourseEntity>(data);
+
+    console.log(course);
+
+    if (!course) throw new RpcException('Course not found');
+
+    return course;
   }
 }
