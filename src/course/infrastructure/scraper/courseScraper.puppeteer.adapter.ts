@@ -1,5 +1,5 @@
 import { ScrapeRequest, ScrapeResponse, ScrapperPort } from '../../application/ports/scrapper.port';
-import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Browser } from 'puppeteer';
 import puppeteer from 'puppeteer-extra';
 import * as cheerio from 'cheerio';
@@ -8,16 +8,20 @@ import { ModuleEntity } from '../../domain/entities/module.entity';
 import { TopicEntity } from '../../domain/entities/topic.entity';
 
 export class CourseScraperPuppeteerAdapter implements ScrapperPort, OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(CourseScraperPuppeteerAdapter.name);
   private browser: Browser;
   private $: cheerio.CheerioAPI;
 
   async scrape<T>(payload: ScrapeRequest): Promise<ScrapeResponse<T>> {
     try {
+      this.logger.log('Starting scrape for URL:', payload.url);
       const pageContent = await this.loadPage(payload.url);
       const courseDetail = this.getCourseDetailsFromHTML(pageContent);
+
+      this.logger.log('Scrape completed successfully for URL:', payload.url);
       return { result: courseDetail as unknown as T, status: 'SUCCESS' };
     } catch (e) {
-      console.error(e);
+      this.logger.error(e);
       throw e;
     }
   }
@@ -85,9 +89,15 @@ export class CourseScraperPuppeteerAdapter implements ScrapperPort, OnModuleInit
   }
 
   async onModuleInit() {
+    this.logger.log('Initializing PuppeteerAdapter...');
+
     puppeteer.use(StealthPlugin());
-    this.browser = await puppeteer.launch();
-    console.log('PuppeteerAdapter initialized.');
+    this.browser = await puppeteer.launch({
+      executablePath: '/usr/bin/google-chrome',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+
+    this.logger.log('PuppeteerAdapter initialized.');
   }
 
   async onModuleDestroy() {
