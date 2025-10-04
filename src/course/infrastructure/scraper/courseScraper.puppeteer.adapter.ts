@@ -17,6 +17,7 @@ export class CourseScraperPuppeteerAdapter implements ScrapperPort, OnModuleInit
       this.logger.log('Starting scrape for URL:', payload.url);
       const pageContent = await this.loadPage(payload.url);
       const courseDetail = this.getCourseDetailsFromHTML(pageContent);
+      courseDetail.url = payload.url;
 
       this.logger.log('Scrape completed successfully for URL:', payload.url);
       return { result: courseDetail as unknown as T, status: 'SUCCESS' };

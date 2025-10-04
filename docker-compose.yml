@@ -22,3 +22,13 @@ services:
       KAFKA_JMX_PORT: 9991
     ports:
       - "9092:9092"
+  microservice:
+    build: .
+    depends_on:
+      kafka:
+        condition: service_healthy
+    platform: "linux/amd64"
+    ports:
+      - "3001:3000"
+    env_file:
+      - .env
